@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>HaxBall Mobile Online</title>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #529c2b;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            position: fixed;
+        }
+        #app {
+            width: 100%;
+            height: 100%;
+            background: #529c2b;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* ===== МЕНЮ ЭКРАН ===== */
+        #menuScreen {
+            position: absolute;
+            inset: 0;
+            z-index: 30;
+            display: flex;
+            transition: opacity 0.3s;
+        }
+        #menuScreen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .menu-left {
+            flex: 1;
+            background: linear-gradient(135deg, #ff1a35, #b30016);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 5vh 3vw;
+            clip-path: polygon(0 0, 100% 0, 85% 100%, 0 100%);
+            position: relative;
+        }
+        .menu-right {
+            flex: 1;
+            background: linear-gradient(135deg, #1a66ff, #0044cc);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 5vh 3vw;
+            clip-path: polygon(15% 0, 100% 0, 100% 100%, 0 100%);
+            margin-left: -5%;
+            position: relative;
+        }
+        .menu-title {
+            color: white;
+            font-size: clamp(2.2rem, 8vw, 4.5rem);
+            font-weight: 900;
+            text-shadow: 0 4px 0 rgba(0,0,0,0.3), 0 8px 20px rgba(0,0,0,0.4);
+            letter-spacing: 2px;
+            text-align: center;
+        }
+        .menu-title span { color: #ffdd44; }
+        
+        .menu-play-btn {
+            background: #ffdd44;
+            border: none;
+            border-radius: 60px;
+            color: #1a1a2a;
+            font-weight: 900;
+            font-size: clamp(1.4rem, 4.5vw, 2.5rem);
+            padding: 1.5vh 0;
+            width: 80%;
+            max-width: 260px;
+            box-shadow: 0 6px 0 #ccaa22, 0 6px 25px rgba(0,0,0,0.4);
+            cursor: pointer;
+            margin-top: 1.5vh;
+        }
+        .menu-play-btn:active {
+            transform: translateY(6px);
+            box-shadow: 0 1px 0 #ccaa22;
+        }
+        .menu-online-btn {
+            background: #00ff66;
+            color: #113311;
+            box-shadow: 0 6px 0 #00aa44, 0 6px 25px rgba(0,0,0,0.3);
+        }
+        .menu-online-btn:active { box-shadow: 0 1px 0 #00aa44; }
+
+        .menu-row { display: flex; gap: 2vw; margin-top: 1.5vh; }
+        .menu-btn {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 40px;
+            color: white;
+            font-weight: 700;
+            font-size: clamp(0.7rem, 1.8vw, 0.95rem);
+            padding: 1.2vh 3vw;
+            cursor: pointer;
+        }
+        
+        .menu-profile-box {
+            position: absolute;
+            top: 3vh; left: 4vw;
+            background: rgba(0,0,0,0.4);
+            padding: 8px 16px;
+            border-radius: 30px;
+            border: 1px solid rgba(255,255,255,0.15);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 35;
+        }
+        .menu-profile-box input {
+            background: transparent; border: none; color: white;
+            font-weight: 700; font-size: 0.9rem; outline: none;
+        }
+        #nickInput { width: 95px; }
+        #numInput { width: 35px; text-align: center; color: #ffdd44; border-left: 1px solid rgba(255,255,255,0.3); padding-left: 8px; }
+
+        .menu-author {
+            position: absolute; bottom: 3vh; left: 4vw;
+            color: rgba(255,255,255,0.6); font-weight: 700; font-size: 1.1rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3); letter-spacing: 1px;
+        }
+        .menu-tg-link {
+            position: absolute; bottom: 3vh; right: 4vw;
+            background: #24A1DE; width: 50px; height: 50px; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 4px 15px rgba(36,161,222,0.4); cursor: pointer;
+            transition: transform 0.2s; z-index: 40;
+        }
+        .menu-tg-link:active { transform: scale(0.9); }
+        .menu-tg-link svg { width: 26px; height: 26px; fill: white; }
+
+        /* ===== ИГРОВОЙ ИНТЕРФЕЙС ===== */
+        #gameScreen {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            background: #529c2b;
+        }
+
+        #topOverlay {
+            position: absolute;
+            top: 12px; left: 0; right: 0;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            pointer-events: none; z-index: 10; gap: 4px;
+        }
+        #scoreDisplay {
+            display: flex; gap: 12px; color: #ffffff; font-weight: 850;
+            font-size: clamp(1.1rem, 3.5vw, 1.6rem);
+            background: rgba(15, 30, 20, 0.75); backdrop-filter: blur(8px);
+            padding: 4px 22px; border-radius: 30px;
+            border: 2px solid rgba(255,255,255,0.2); box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+            pointer-events: auto;
+        }
+        #timerDisplay {
+            color: #ffdd44; font-weight: 700; font-size: 0.95rem;
+            background: rgba(0, 0, 0, 0.5); padding: 2px 12px; border-radius: 10px;
+        }
+        #netStatusDisplay {
+            position: absolute; top: 12px; left: 16px; color: #00ff66; font-size: 0.85rem; font-weight: bold;
+            background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 5px; display: none;
+        }
+
+        #resetPosBtn {
+            position: absolute; top: 12px; right: 16px;
+            background: rgba(15, 30, 20, 0.75); backdrop-filter: blur(8px);
+            border: 2px solid rgba(255,255,255,0.2); border-radius: 50%;
+            color: white; width: clamp(40px, 10vh, 52px); height: clamp(40px, 10vh, 52px);
+            font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        #pcPowerBarContainer {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: 160px; height: 10px; background: rgba(0,0,0,0.5);
+            border-radius: 5px; border: 1px solid rgba(255,255,255,0.2);
+            overflow: hidden; display: none; z-index: 10;
+        }
+        #pcPowerBar { width: 0%; height: 100%; background: linear-gradient(90deg, #ffdd44, #ff3344); }
+
+        #joystickZone {
+            position: absolute; bottom: 20px; left: 30px;
+            width: clamp(105px, 25vh, 150px); height: clamp(105px, 25vh, 150px);
+            border-radius: 50%; background: rgba(15, 30, 20, 0.65); backdrop-filter: blur(5px);
+            border: 3.5px solid rgba(255,255,255,0.35); box-shadow: 0 8px 24px rgba(0,0,0,0.35); z-index: 10;
+        }
+        #joystickKnob {
+            width: 44%; height: 44%; border-radius: 50%; background: #ffffff;
+            box-shadow: 0 5px 12px rgba(0,0,0,0.5); position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .kick-container {
+            position: absolute; bottom: 20px; right: 30px;
+            display: flex; align-items: flex-end; gap: 14px; z-index: 10;
+        }
+        .btn-holder { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        #kickBtn {
+            width: clamp(80px, 19vh, 115px); height: clamp(80px, 19vh, 115px);
+            border-radius: 50%; background: linear-gradient(135deg, #ff3344, #cc0011);
+            border: 3px solid rgba(255,255,255,0.4); box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+            color: white; font-size: clamp(0.95rem, 2.3vh, 1.25rem); font-weight: 900;
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+        }
+        #passBtn {
+            width: clamp(65px, 15vh, 90px); height: clamp(65px, 15vh, 90px);
+            border-radius: 50%; background: linear-gradient(135deg, #ffdd44, #ccaa22);
+            border: 3px solid rgba(255,255,255,0.4); box-shadow: 0 6px 14px rgba(0,0,0,0.4);
+            color: #1a1a2a; font-size: clamp(0.85rem, 2.1vh, 1.15rem); font-weight: 900;
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+        }
+        #kickPowerLabel {
+            color: #ffdd44; font-size: clamp(0.7rem, 1.8vh, 0.95rem); font-weight: 800;
+            background: rgba(15, 30, 20, 0.8); padding: 2px 14px; border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.15); text-shadow: 0 0 5px rgba(255,221,68,0.4);
+        }
+
+        #goalOverlay {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.4);
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 25; pointer-events: none;
+        }
+        #goalOverlay.active { display: flex; animation: fadeIn 0.2s forwards; }
+        #goalText {
+            font-size: clamp(3rem, 12vw, 6.5rem); font-weight: 950; color: #ffdd44;
+            text-shadow: 0 0 30px rgba(255,221,68,0.6), 0 5px 0 #ccaa22, 0 15px 30px rgba(0,0,0,0.5);
+            letter-spacing: 4px; animation: bounce 0.5s infinite alternate;
+        }
+        #goalScorer {
+            font-size: clamp(1.2rem, 4vw, 2.2rem); color: white; font-weight: 800;
+            background: rgba(0,0,0,0.6); padding: 6px 24px; border-radius: 30px; margin-top: 10px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        @keyframes bounce { from { transform: scale(0.95); } to { transform: scale(1.05); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* ===== МОДАЛКИ (ОКНА) ===== */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(6px); display: none; justify-content: center; align-items: center; z-index: 100;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: #15221b; border-radius: 20px; padding: 22px; max-width: 420px; width: 90%;
+            border: 2px solid rgba(255,255,255,0.1); color: white; max-height: 85vh; overflow-y: auto;
+        }
+        .modal h2 { text-align: center; margin-bottom: 12px; font-size: 1.3rem; color: #ffdd44; }
+        .modal-close {
+            background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2);
+            color: white; padding: 10px; border-radius: 30px; font-weight: 700; cursor: pointer; width: 100%; margin-top: 12px;
+        }
+        .skin-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 15px 0; }
+        .skin-item { aspect-ratio: 1; border-radius: 50%; cursor: pointer; border: 3px solid transparent; }
+        .skin-item.active { border-color: #ffdd44; box-shadow: 0 0 12px #ffdd44; }
+        .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .setting-row button { background: rgba(255,255,255,0.15); border: none; color: white; padding: 6px 14px; border-radius: 20px; cursor: pointer; }
+        .setting-row button.active-mode { background: #ffdd44; color: #1a1a2a; font-weight: 700; }
+        .setting-row input, .setting-row select {
+            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); padding: 6px 10px; border-radius: 8px; color: white; outline: none; font-size: 0.9rem;
+        }
+        
+        .mode-selection { display: flex; flex-direction: column; gap: 12px; margin-top: 15px; }
+        .mode-opt-btn { background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.15); border-radius: 15px; color: white; padding: 16px; font-size: 1.2rem; font-weight: 800; cursor: pointer; text-align: center; }
+        
+        /* Специфика ONLINE панелей */
+        .server-list {
+            background: rgba(0,0,0,0.4); border-radius: 12px; max-height: 250px; overflow-y: auto; margin: 12px 0; padding: 6px;
+        }
+        .server-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05);
+            background: rgba(255,255,255,0.03); border-radius: 6px; margin-bottom: 6px;
+        }
+        .server-item:last-child { margin-bottom: 0; }
+        .server-info { display: flex; flex-direction: column; gap: 2px; }
+        .server-name { font-weight: bold; color: #fff; font-size: 0.95rem; }
+        .server-meta { font-size: 0.75rem; color: rgba(255,255,255,0.5); }
+        .server-join-btn {
+            background: #00ff66; border: none; color: #113311; font-weight: bold; padding: 6px 14px; border-radius: 15px; cursor: pointer; font-size: 0.85rem;
+        }
+        .online-top-actions { display: flex; justify-content: space-between; gap: 10px; }
+        .action-btn { background: #ffdd44; color: #111; font-weight: bold; border: none; padding: 8px 16px; border-radius: 10px; cursor: pointer; flex: 1; text-align: center; font-size: 0.9rem; }
+        .action-btn.refresh { background: rgba(255,255,255,0.15); color: white; }
+    </style>
+</head>
+<body>
+<div id="app">
+
+    <div id="menuScreen">
+        <div class="menu-left">
+            <div class="menu-profile-box">
+                👤 <input type="text" id="nickInput" value="Игрок 1" maxlength="10">
+                № <input type="text" id="numInput" value="10" maxlength="2">
+            </div>
+            <div class="menu-title">⚽ <span>HAX</span></div>
+            <button class="menu-play-btn" id="playBtn">▶ ОДНОЧКА</button>
+            <button class="menu-play-btn menu-online-btn" id="onlineMenuBtn">🌐 ОНЛАЙН</button>
+            <div class="menu-row">
+                <button class="menu-btn" id="settingsBtn">⚙️ НАСТР</button>
+                <button class="menu-btn" id="shopBtn">🏪 ФОРМА</button>
+            </div>
+            <div class="menu-author">By Kehiyan</div>
+        </div>
+        <div class="menu-right">
+            <div class="menu-title" style="font-size:clamp(1.8rem,6vw,3.5rem);">BALL</div>
+            <div class="menu-tg-link" id="tgLinkBtn">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-1-.65-.35-1 .22-1.62.15-.15 2.72-2.5 2.77-2.7.01-.03.01-.14-.06-.2-.07-.06-.17-.04-.25-.02-.11.02-1.83 1.16-5.16 3.42-.49.34-.93.5-1.33.49-.44-.01-1.29-.25-1.92-.45-.77-.25-1.39-.39-1.34-.83.03-.23.35-.46.97-.71 3.82-1.66 6.37-2.75 7.64-3.28 3.64-1.5 4.4-1.76 4.9-.17.11.23.14.49.12.75z"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <div id="gameScreen">
+        <div id="topOverlay">
+            <div id="scoreDisplay">
+                <span id="scoreLeft">0</span>
+                <span style="color:rgba(255,255,255,0.4);">:</span>
+                <span id="scoreRight">0</span>
+            </div>
+            <div id="timerDisplay">02:00</div>
+        </div>
+        <div id="netStatusDisplay">Оффлайн</div>
+
+        <button id="resetPosBtn">⟳</button>
+
+        <div id="goalOverlay">
+            <div id="goalText">ГООООЛ!</div>
+            <div id="goalScorer">Игрок забил мяч</div>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="joystickZone"><div id="joystickKnob"></div></div>
+        <div class="kick-container" id="phoneControlsContainer">
+            <div class="btn-holder"><button id="passBtn">ПАС</button></div>
+            <div class="btn-holder">
+                <button id="kickBtn">УДАР</button>
+                <div id="kickPowerLabel">0%</div>
+            </div>
+        </div>
+
+        <div id="pcPowerBarContainer"><div id="pcPowerBar"></div></div>
+    </div>
+
+    <div class="modal-overlay" id="onlineLobbyModal">
+        <div class="modal">
+            <h2>🌐 ОНЛАЙН СЕРВЕРА</h2>
+            <div class="online-top-actions">
+                <button class="action-btn" id="openCreateModalBtn">➕ Создать сервер</button>
+                <button class="action-btn refresh" id="refreshServersBtn">🔄 Обновить</button>
+            </div>
+            <div class="server-list" id="serverListContainer">
+                <div style="text-align:center;color:rgba(255,255,255,0.4);padding:20px;">Загрузка списка серверов...</div>
+            </div>
+            <button class="modal-close" id="onlineLobbyClose">НАЗАД</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="createLocalServerModal">
+        <div class="modal">
+            <h2>🛠️ ПАРАМЕТРЫ СЕРВЕРА</h2>
+            <div class="setting-row">
+                <span>Название:</span>
+                <input type="text" id="srvName" value="Комната Kehiyan" maxlength="15">
+            </div>
+            <div class="setting-row">
+                <span>Пароль (если нужен):</span>
+                <input type="password" id="srvPass" placeholder="Нет пароля" maxlength="10">
+            </div>
+            <div class="setting-row">
+                <span>Формат:</span>
+                <select id="srvMode">
+                    <option value="1v1">1 на 1 (Классика)</option>
+                    <option value="3v3" selected>3 на 3 (Команды)</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <span>Время матча:</span>
+                <select id="srvTime">
+                    <option value="120">2 минуты</option>
+                    <option value="600">10 минут</option>
+                    <option value="1200">20 минут</option>
+                </select>
+            </div>
+            <button class="action-btn" id="startHostingBtn" style="width:100%; margin-top:15px; background:#00ff66; color:#113311; font-size:1.1rem; padding:12px;">ЗАПУСТИТЬ СЕРВЕР</button>
+            <button class="modal-close" id="createLocalServerClose">ОТМЕНА</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modeModal">
+        <div class="modal">
+            <h2>🏆 ОДИНОЧНЫЙ РЕЖИМ</h2>
+            <div class="mode-selection">
+                <button class="mode-opt-btn" id="mode1v1Btn">⚡ 1 на 1 (Классика)</button>
+                <button class="mode-opt-btn" id="mode3v3Btn" style="border-color: #ffdd44;">🔥 3 на 3 (Команды)</button>
+            </div>
+            <button class="modal-close" id="modeClose">ОТМЕНА</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="matchEndModal">
+        <div class="modal" style="text-align: center;">
+            <h2 id="matchResultTitle">МАТЧ ЗАВЕРШЕН</h2>
+            <p id="matchResultScore" style="font-size: 1.5rem; font-weight: 800; margin: 10px 0; color: #ffdd44;">0 : 0</p>
+            <button class="modal-close" id="matchEndClose">В МЕНЮ</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="shopModal">
+        <div class="modal">
+            <h2>🏪 ФОРМА ИГРОКА</h2>
+            <div class="skin-grid" id="skinGrid">
+                <div class="skin-item active" style="background:#ff1a35;" data-color="#ff1a35"></div>
+                <div class="skin-item" style="background:#ff5566;" data-color="#ff5566"></div>
+                <div class="skin-item" style="background:#cc001b;" data-color="#cc001b"></div>
+                <div class="skin-item" style="background:#ff7a00;" data-color="#ff7a00"></div>
+            </div>
+            <button class="modal-close" id="shopClose">ОК</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <h2>⚙️ НАСТРОЙКИ</h2>
+            <div class="setting-row">
+                <span>Устройство:</span>
+                <div>
+                    <button id="devicePhoneBtn" class="active-mode">📱 Смартфон</button>
+                    <button id="devicePCBtn">🖥️ ПК</button>
+                </div>
+            </div>
+            <div class="setting-row">
+                <span>Сложность ботов:</span>
+                <button id="botDifficulty">Средняя</button>
+            </div>
+            <button class="modal-close" id="settingsClose">ЗАКРЫТЬ</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+(function() {
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let W, H;
+
+    function resizeCanvas() {
+        W = window.innerWidth; H = window.innerHeight;
+        canvas.width = W; canvas.height = H;
+        updatePhysicsConstants();
+    }
+
+    // ===== ФИЗИКА И ПАРАМЕТРЫ =====
+    let PLAYER_RADIUS, BALL_RADIUS, GOAL_WIDTH, GOAL_Y_TOP, GOAL_Y_BOTTOM, GOAL_DEPTH;
+    let FIELD_X_MIN, FIELD_X_MAX; 
+    let PLAYER_SPEED, BALL_FRICTION, BOUNCE_WALL;
+    
+    let players = [];
+    let ball = { x: 0, y: 0, vx: 0, vy: 0 };
+    let scoreLeft = 0, scoreRight = 0;
+    
+    let gameActive = false;
+    let isCelebrating = false;
+    let celebrationTimer = 0;
+    let gameMode = '3v3';
+    let gameTime = 120;
+    let maxGameTime = 120;
+    let timerInterval = null;
+    
+    let playerColor = '#ff1a35', botColor = '#1a66ff';    
+    let posts = [];
+    let playerNick = "Игрок 1", playerNum = "10";
+
+    // ===== ПЕРЕМЕННЫЕ СЕТИ (PeerJS Cloud) =====
+    let peer = null;
+    let netRole = 'none'; 
+    let netConn = null;   
+    const ROOMS_API_URL = "https://keyvalue.xyz/v1/key/haxballmobile_rooms_2026"; 
+
+    function updatePhysicsConstants() {
+        const base = Math.min(W, H);
+        PLAYER_RADIUS = Math.max(15, base * 0.044);
+        BALL_RADIUS = Math.max(9, base * 0.025);
+        GOAL_WIDTH = Math.max(120, base * 0.38);
+        GOAL_DEPTH = 35;
+        FIELD_X_MIN = GOAL_DEPTH; FIELD_X_MAX = W - GOAL_DEPTH;
+        GOAL_Y_TOP = (H - GOAL_WIDTH) / 2; GOAL_Y_BOTTOM = GOAL_Y_TOP + GOAL_WIDTH;
+        PLAYER_SPEED = Math.max(2.6, base * 0.0085);
+        BALL_FRICTION = 0.988; BOUNCE_WALL = 0.75;
+
+        posts = [
+            { x: FIELD_X_MIN, y: GOAL_Y_TOP, r: 8 },       
+            { x: FIELD_X_MIN, y: GOAL_Y_BOTTOM, r: 8 },    
+            { x: FIELD_X_MAX, y: GOAL_Y_TOP, r: 8 },   
+            { x: FIELD_X_MAX, y: GOAL_Y_BOTTOM, r: 8 } 
+        ];
+        players.forEach(p => p.radius = PLAYER_RADIUS);
+    }
+
+    // ===== UI ЭЛЕМЕНТЫ =====
+    const menuScreen = document.getElementById('menuScreen');
+    const playBtn = document.getElementById('playBtn');
+    const onlineMenuBtn = document.getElementById('onlineMenuBtn');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const shopBtn = document.getElementById('shopBtn');
+    const scoreLeftSpan = document.getElementById('scoreLeft');
+    const scoreRightSpan = document.getElementById('scoreRight');
+    const timerDisplay = document.getElementById('timerDisplay');
+    const netStatusDisplay = document.getElementById('netStatusDisplay');
+    const resetPosBtn = document.getElementById('resetPosBtn');
+    const nickInput = document.getElementById('nickInput');
+    const numInput = document.getElementById('numInput');
+    const tgLinkBtn = document.getElementById('tgLinkBtn');
+    const goalOverlay = document.getElementById('goalOverlay');
+    const goalScorerLabel = document.getElementById('goalScorer');
+
+    const joystickZone = document.getElementById('joystickZone');
+    const joystickKnob = document.getElementById('joystickKnob');
+    const phoneControlsContainer = document.getElementById('phoneControlsContainer');
+    const pcPowerBarContainer = document.getElementById('pcPowerBarContainer');
+    const pcPowerBar = document.getElementById('pcPowerBar');
+    let joyX = 0, joyY = 0;
+
+    const kickBtn = document.getElementById('kickBtn');
+    const passBtn = document.getElementById('passBtn');
+    const kickPowerLabel = document.getElementById('kickPowerLabel');
+    
+    let currentPower = 10, isHoldingKick = false, powerDirection = 1, kickTriggered = false, passTriggered = false;
+
+    const shopModal = document.getElementById('shopModal');
+    const settingsModal = document.getElementById('settingsModal');
+    const modeModal = document.getElementById('modeModal');
+    const matchEndModal = document.getElementById('matchEndModal');
+    const onlineLobbyModal = document.getElementById('onlineLobbyModal');
+    const createLocalServerModal = document.getElementById('createLocalServerModal');
+    
+    const shopClose = document.getElementById('shopClose');
+    const settingsClose = document.getElementById('settingsClose');
+    const modeClose = document.getElementById('modeClose');
+    const matchEndClose = document.getElementById('matchEndClose');
+    const onlineLobbyClose = document.getElementById('onlineLobbyClose');
+    const createLocalServerClose = document.getElementById('createLocalServerClose');
+    
+    const mode1v1Btn = document.getElementById('mode1v1Btn');
+    const mode3v3Btn = document.getElementById('mode3v3Btn');
+    const openCreateModalBtn = document.getElementById('openCreateModalBtn');
+    const refreshServersBtn = document.getElementById('refreshServersBtn');
+    const startHostingBtn = document.getElementById('startHostingBtn');
+    const serverListContainer = document.getElementById('serverListContainer');
+    const skinGrid = document.getElementById('skinGrid');
+    const botDiffBtn = document.getElementById('botDifficulty');
+    const devicePhoneBtn = document.getElementById('devicePhoneBtn');
+    const devicePCBtn = document.getElementById('devicePCBtn');
+
+    let controlMode = 'phone'; let botSpeed = 0.65; let keys = {};
+
+    function startTimer() {
+        clearInterval(timerInterval);
+        gameTime = maxGameTime; updateTimerUI();
+        timerInterval = setInterval(() => {
+            if (gameActive && !isCelebrating) {
+                if (netRole !== 'client') {
+                    gameTime--; updateTimerUI();
+                    if (gameTime <= 0) endMatch();
+                    if (netRole === 'host' && netConn) {
+                        netConn.send({ type: 'sync_time', time: gameTime });
+                    }
+                }
+            }
+        }, 1000);
+    }
+
+    function updateTimerUI() {
+        const mins = Math.floor(gameTime / 60); const secs = gameTime % 60;
+        timerDisplay.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function triggerGoalCelebration(scoringTeam) {
+        isCelebrating = true;
+        celebrationTimer = 300; 
+        
+        let scorerName = "Соперник";
+        if (scoringTeam === 'red') {
+            scorerName = gameMode === '1v1' ? playerNick : "Наша команда";
+        } else {
+            scorerName = gameMode === '1v1' ? (netRole === 'host' ? "Оппонент" : playerNick) : "Команда Синих";
+        }
+        
+        goalScorerLabel.textContent = `⚽ ${scorerName} забивает гол!`;
+        goalOverlay.classList.add('active');
+    }
+
+    function endMatch() {
+        gameActive = false; clearInterval(timerInterval);
+        goalOverlay.classList.remove('active');
+        document.getElementById('matchResultScore').textContent = `${scoreLeft} : ${scoreRight}`;
+        const title = document.getElementById('matchResultTitle');
+        if (scoreLeft > scoreRight) { title.textContent = "🎉 ПОБЕДА!"; title.style.color = "#ffdd44"; }
+        else if (scoreLeft < scoreRight) { title.textContent = "❌ ПОРАЖЕНИЕ"; title.style.color = "#ff3344"; }
+        else { title.textContent = "🤝 НИЧЬЯ"; title.style.color = "#ffffff"; }
+        matchEndModal.classList.add('active');
+    }
+
+    function resetGame() {
+        const cy = H / 2;
+        scoreLeft = 0; scoreRight = 0; updateScore();
+        isCelebrating = false; goalOverlay.classList.remove('active');
+        
+        playerNick = nickInput.value.trim() || "Игрок 1";
+        playerNum = numInput.value.trim() || "10";
+        
+        if (gameMode === '1v1') {
+            players = [
+                { id: 0, team: 'red', isPlayer: true, nick: playerNick, x: FIELD_X_MIN + 100, y: cy, vx: 0, vy: 0, radius: PLAYER_RADIUS, color: playerColor, num: playerNum },
+                { id: 1, team: 'blue', isPlayer: (netRole !== 'none'), nick: (netRole === 'none' ? "Бот" : "Оппонент"), x: FIELD_X_MAX - 100, y: cy, vx: 0, vy: 0, radius: PLAYER_RADIUS, color: botColor, num: "7" }
+            ];
+        } else {
+            players = [
+                { id: 0, team: 'red', isPlayer: true, nick: playerNick, x: FIELD_X_MIN + 120, y: cy, vx: 0, vy: 0, radius: PLAYER_RADIUS, color: playerColor, num: playerNum },
+                { id: 2, team: 'red', isPlayer: false, role: 'forward', nick: "Бот Коля", x: W/2 - 80, y: cy - 80, vx: 0, vy: 0, radius: PLAYER_RADIUS, color: playerColor, num: "9" },
+                { id: 3, team: 'red', isPlayer: false, role: 'defender', nick: "Бот Ваня", x: FIELD_X_MIN + 180, y: cy + 100, vx: 0, vy: 0, radius: PLAYER_RADIUS, color: playerColor, num: "3" },
+                
+                { id: 1, team: 'blue', isPlayer: (netRole !== 'none'), nick: (netRole === 'none' ? "Бот" : "Оппонент"), x: FIELD_X_MAX - 120, y: cy, vx: 0, vy: 0, radius: PLAYER_RADIUS, color: botColor, num: "7" },
+                { id: 4, team: 'blue', isPlayer: false, role: 'forward', nick: "Бот", x: W/2 + 80, y: cy + 80, vx: 0, vy: 0, radius: PLAYER_RADIUS, color: botColor, num: "11" },
+                { id: 5, team: 'blue', isPlayer: false, role: 'defender', nick: "Бот", x: FIELD_X_MAX - 180, y: cy - 100, vx: 0, vy: 0, radius: PLAYER_RADIUS, color: botColor, num: "4" }
+            ];
+        }
+        ball = { x: W / 2, y: cy, vx: (Math.random() - 0.5) * 2, vy: (Math.random() - 0.5) * 2 };
+        gameActive = true; startTimer();
+    }
+
+    function resetBallPositions() {
+        const cy = H / 2;
+        ball = { x: W / 2, y: cy, vx: (Math.random() - 0.5) * 2, vy: (Math.random() - 0.5) * 2 };
+        if (gameMode === '1v1') {
+            players[0].x = FIELD_X_MIN + 100; players[0].y = cy;
+            players[1].x = FIELD_X_MAX - 100; players[1].y = cy;
+        } else {
+            players[0].x = FIELD_X_MIN + 120; players[0].y = cy;
+            players[1].x = FIELD_X_MAX - 120; players[1].y = cy;
+            players[2].x = W/2 - 80; players[2].y = cy - 80;
+            players[3].x = FIELD_X_MIN + 180; players[3].y = cy + 100;
+            players[4].x = W/2 + 80; players[4].y = cy + 80;
+            players[5].x = FIELD_X_MAX - 180; players[5].y = cy - 100;
+        }
+        players.forEach(p => p.vx = p.vy = 0);
+    }
+
+    function updateScore() {
+        scoreLeftSpan.textContent = scoreLeft; scoreRightSpan.textContent = scoreRight;
+    }
+
+    function checkCircleCollision(c1, c2, elastic = true) {
+        const dx = c2.x - c1.x; const dy = c2.y - c1.y;
+        const dist = Math.hypot(dx, dy); const minDist = c1.radius + (c2.radius || c2.r);
+        if (dist < minDist && dist > 0.01) {
+            const nx = dx / dist; const ny = dy / dist; const overlap = minDist - dist;
+            if (c2.r !== undefined) { 
+                c1.x -= nx * overlap; c1.y -= ny * overlap;
+                if (elastic) {
+                    const dot = c1.vx * nx + c1.vy * ny;
+                    if (dot > 0) { c1.vx -= (1 + BOUNCE_WALL) * dot * nx; c1.vy -= (1 + BOUNCE_WALL) * dot * ny; }
+                }
+            } else { 
+                c1.x -= nx * overlap * 0.5; c1.y -= ny * overlap * 0.5;
+                c2.x += nx * overlap * 0.5; c2.y += ny * overlap * 0.5;
+                if (elastic) {
+                    const rVx = c2.vx - c1.vx; const rVy = c2.vy - c1.vy; const rVn = rVx * nx + rVy * ny;
+                    if (rVn < 0) { const j = -(1 + 0.5) * rVn / 2; c1.vx -= j * nx; c1.vy -= j * ny; c2.vx += j * nx; c2.vy += j * ny; }
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    function handleBallPhysics() {
+        ball.x += ball.vx; ball.y += ball.vy;
+        const r = BALL_RADIUS;
+        posts.forEach(post => checkCircleCollision(ball, post, true));
+
+        if (ball.y - r < 0) { ball.y = r; ball.vy = -ball.vy * BOUNCE_WALL; }
+        if (ball.y + r > H) { ball.y = H - r; ball.vy = -ball.vy * BOUNCE_WALL; }
+
+        if (ball.x < FIELD_X_MIN) {
+            if (ball.y > GOAL_Y_TOP && ball.y < GOAL_Y_BOTTOM) {
+                if (ball.x + r < FIELD_X_MIN - 4) { 
+                    scoreRight++; updateScore(); triggerGoalCelebration('blue'); return; 
+                }
+                if (ball.y - r < GOAL_Y_TOP) { ball.y = GOAL_Y_TOP + r; ball.vy = -ball.vy * 0.2; }
+                if (ball.y + r > GOAL_Y_BOTTOM) { ball.y = GOAL_Y_BOTTOM - r; ball.vy = -ball.vy * 0.2; }
+                if (ball.x - r < 0) { ball.x = r; ball.vx = -ball.vx * 0.2; }
+            } else { ball.x = FIELD_X_MIN + r; ball.vx = -ball.vx * BOUNCE_WALL; }
+        }
+
+        if (ball.x > FIELD_X_MAX) {
+            if (ball.y > GOAL_Y_TOP && ball.y < GOAL_Y_BOTTOM) {
+                if (ball.x - r > FIELD_X_MAX + 4) { 
+                    scoreLeft++; updateScore(); triggerGoalCelebration('red'); return; 
+                }
+                if (ball.y - r < GOAL_Y_TOP) { ball.y = GOAL_Y_TOP + r; ball.vy = -ball.vy * 0.2; }
+                if (ball.y + r > GOAL_Y_BOTTOM) { ball.y = GOAL_Y_BOTTOM - r; ball.vy = -ball.vy * 0.2; }
+                if (ball.x + r > W) { ball.x = W - r; ball.vx = -ball.vx * 0.2; }
+            } else { ball.x = FIELD_X_MAX - r; ball.vx = -ball.vx * BOUNCE_WALL; }
+        }
+    }
+
+    function handlePlayerConstraints(p) {
+        const r = p.radius; posts.forEach(post => checkCircleCollision(p, post, false));
+        if (p.y - r < 0) p.y = r;
+        if (p.y + r > H) p.y = H - r;
+        if (p.x < FIELD_X_MIN) {
+            if (p.y > GOAL_Y_TOP && p.y < GOAL_Y_BOTTOM) { if (p.x - r < 0) p.x = r; } else { p.x = FIELD_X_MIN + r; }
+        }
+        if (p.x > FIELD_X_MAX) {
+            if (p.y > GOAL_Y_TOP && p.y < GOAL_Y_BOTTOM) { if (p.x + r > W) p.x = W - r; } else { p.x = FIELD_X_MAX - r; }
+        }
+    }
+
+    function updateBotsAI() {
+        players.forEach(bot => {
+            if (bot.isPlayer) return;
+            const spd = PLAYER_SPEED * botSpeed * (bot.team === 'red' ? 0.9 : 0.88);
+            let targetX = ball.x; let targetY = ball.y;
+
+            if (gameMode === '3v3') {
+                let closestTeammate = null; let minDist = 99999;
+                players.forEach(p => {
+                    if (p.team === bot.team) {
+                        const d = Math.hypot(ball.x - p.x, ball.y - p.y);
+                        if (d < minDist) { minDist = d; closestTeammate = p; }
+                    }
+                });
+                if (closestTeammate && closestTeammate.id !== bot.id) {
+                    if (bot.role === 'defender') {
+                        targetX = bot.team === 'red' ? FIELD_X_MIN + 140 : FIELD_X_MAX - 140;
+                        targetY = H / 2 + (ball.y - H / 2) * 0.4;
+                    } else {
+                        targetX = bot.team === 'red' ? ball.x - 120 : ball.x + 120;
+                        targetY = bot.y > ball.y ? ball.y + 60 : ball.y - 60;
+                    }
+                }
+            }
+
+            const dx = targetX - bot.x, dy = targetY - bot.y; const dist = Math.hypot(dx, dy);
+            if (dist > 8) { bot.vx = (dx / dist) * spd; bot.vy = (dy / dist) * spd; } else { bot.vx = bot.vy = 0; }
+
+            const ballDist = Math.hypot(ball.x - bot.x, ball.y - bot.y);
+            if (ballDist < bot.radius + BALL_RADIUS + 10 && Math.random() < 0.15) {
+                const aimX = bot.team === 'red' ? FIELD_X_MAX : FIELD_X_MIN;
+                const angle = Math.atan2(ball.y - bot.y, aimX - bot.x);
+                ball.vx = Math.cos(angle) * (6 + Math.random() * 6); ball.vy = Math.sin(angle) * (6 + Math.random() * 6);
+            }
+        });
+    }
+
+    function executeSmartPass(pIndex) {
+        const p1 = players[pIndex]; const ballDist = Math.hypot(ball.x - p1.x, ball.y - p1.y);
+        if (ballDist > p1.radius + BALL_RADIUS + 35) return;
+        
+        let targetTeam = p1.team;
+        let bestTeammate = null; let minDist = 99999;
+        players.forEach(p => {
+            if (p.team === targetTeam && p.id !== p1.id) {
+                const d = Math.hypot(p.x - p1.x, p.y - p1.y);
+                if (d < minDist) { minDist = d; bestTeammate = p; }
+            }
+        });
+        if (bestTeammate) {
+            const angle = Math.atan2(bestTeammate.y - ball.y, bestTeammate.x - ball.x);
+            ball.vx = Math.cos(angle) * 12; ball.vy = Math.sin(angle) * 12;
+        } else {
+            const aimX = p1.team === 'red' ? FIELD_X_MAX : FIELD_X_MIN;
+            const angle = Math.atan2(ball.y - p1.y, aimX - p1.x);
+            ball.vx = Math.cos(angle) * 11; ball.vy = Math.sin(angle) * 11;
+        }
+    }
+
+    function update() {
+        if (!gameActive) return;
+
+        if (netRole === 'client') {
+            let currentInpX = 0, currentInpY = 0;
+            if (controlMode === 'phone') { currentInpX = joyX; currentInpY = joyY; } 
+            else {
+                if (keys['KeyW'] || keys['ArrowUp']) currentInpY = -1; if (keys['KeyS'] || keys['ArrowDown']) currentInpY = 1;
+                if (keys['KeyA'] || keys['ArrowLeft']) currentInpX = -1; if (keys['KeyD'] || keys['ArrowRight']) currentInpX = 1;
+            }
+            if (netConn) {
+                netConn.send({
+                    type: 'client_input',
+                    jx: currentInpX, jy: currentInpY,
+                    kick: kickTriggered, pass: passTriggered, power: currentPower
+                });
+            }
+            kickTriggered = false; passTriggered = false;
+            
+            if (isHoldingKick) {
+                currentPower += 2.5 * powerDirection;
+                if (currentPower >= 100) { currentPower = 100; powerDirection = -1; }
+                else if (currentPower <= 10) { currentPower = 10; powerDirection = 1; }
+                if (controlMode === 'phone') kickPowerLabel.textContent = Math.round(currentPower) + '%';
+                else pcPowerBar.style.width = currentPower + '%';
+            }
+            return; 
+        }
+
+        if (isCelebrating) {
+            celebrationTimer--;
+            players.forEach(p => {
+                if (Math.random() < 0.08) {
+                    p.vx = (Math.random() - 0.5) * PLAYER_SPEED * 1.2;
+                    p.vy = (Math.random() - 0.5) * PLAYER_SPEED * 1.2;
+                }
+                p.x += p.vx; p.y += p.vy;
+                handlePlayerConstraints(p);
+            });
+            ball.vx *= 0.92; ball.vy *= 0.92;
+            ball.x += ball.vx; ball.y += ball.vy;
+
+            if (celebrationTimer <= 0) {
+                isCelebrating = false;
+                goalOverlay.classList.remove('active');
+                resetBallPositions();
+            }
+            
+            if (netRole === 'host' && netConn) sendHostSync();
+            return;
+        }
+
+        const p1 = players[0];
+        if (controlMode === 'phone') { p1.vx = joyX * PLAYER_SPEED; p1.vy = joyY * PLAYER_SPEED; } 
+        else {
+            let kx = 0, ky = 0;
+            if (keys['KeyW'] || keys['ArrowUp']) ky = -1; if (keys['KeyS'] || keys['ArrowDown']) ky = 1;
+            if (keys['KeyA'] || keys['ArrowLeft']) kx = -1; if (keys['KeyD'] || keys['ArrowRight']) kx = 1;
+            if (kx !== 0 && ky !== 0) { kx *= 0.7071; ky *= 0.7071; }
+            p1.vx = kx * PLAYER_SPEED; p1.vy = ky * PLAYER_SPEED;
+        }
+
+        updateBotsAI();
+
+        players.forEach(p => { p.x += p.vx; p.y += p.vy; handlePlayerConstraints(p); });
+
+        for (let i = 0; i < players.length; i++) {
+            for (let j = i + 1; j < players.length; j++) { checkCircleCollision(players[i], players[j], true); }
+        }
+
+        handleBallPhysics();
+        players.forEach(p => checkCircleCollision(p, ball, true));
+
+        if (isHoldingKick) {
+            currentPower += 2.5 * powerDirection;
+            if (currentPower >= 100) { currentPower = 100; powerDirection = -1; }
+            else if (currentPower <= 10) { currentPower = 10; powerDirection = 1; }
+            if (controlMode === 'phone') kickPowerLabel.textContent = Math.round(currentPower) + '%';
+            else pcPowerBar.style.width = currentPower + '%';
+        }
+
+        if (kickTriggered) {
+            const dx = ball.x - p1.x, dy = ball.y - p1.y; const dist = Math.hypot(dx, dy);
+            if (dist < p1.radius + BALL_RADIUS + 32) {
+                const angle = Math.atan2(dy, dx); const calculatedVel = 5 + (currentPower / 100) * 15;
+                ball.vx = Math.cos(angle) * calculatedVel; ball.vy = Math.sin(angle) * calculatedVel;
+            }
+            kickTriggered = false; currentPower = 10;
+            kickPowerLabel.textContent = '0%'; pcPowerBar.style.width = '0%';
+        }
+
+        if (passTriggered) { executeSmartPass(0); passTriggered = false; }
+        ball.vx *= BALL_FRICTION; ball.vy *= BALL_FRICTION;
+
+        if (netRole === 'host' && netConn) {
+            sendHostSync();
+        }
+    }
+
+    function sendHostSync() {
+        let playersData = players.map(p => ({ id: p.id, x: p.x, y: p.y, color: p.color, nick: p.nick, num: p.num }));
+        netConn.send({
+            type: 'sync',
+            ball: { x: ball.x, y: ball.y },
+            players: playersData,
+            score: { left: scoreLeft, right: scoreRight },
+            celebrating: isCelebrating
+        });
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#529c2b'; ctx.fillRect(0, 0, W, H);
+
+        ctx.fillStyle = '#4b8e27';
+        const stripesCount = 13; const stripeWidth = (FIELD_X_MAX - FIELD_X_MIN) / stripesCount;
+        for (let i = 0; i < stripesCount; i += 2) { ctx.fillRect(FIELD_X_MIN + i * stripeWidth, 0, stripeWidth, H); }
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 4;
+        ctx.strokeRect(FIELD_X_MIN, 0, FIELD_X_MAX - FIELD_X_MIN, H);
+        ctx.beginPath(); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke();
+        ctx.beginPath(); ctx.arc(W / 2, H / 2, Math.min(W, H) * 0.18, 0, Math.PI * 2); ctx.stroke();
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 2;
+        for(let y = GOAL_Y_TOP; y <= GOAL_Y_BOTTOM; y += 12) { 
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(FIELD_X_MIN, y); ctx.stroke(); 
+            ctx.beginPath(); ctx.moveTo(FIELD_X_MAX, y); ctx.lineTo(W, y); ctx.stroke();
+        }
+
+        ctx.fillStyle = 'rgba(0,0,0,0.18)';
+        players.forEach(p => { ctx.beginPath(); ctx.arc(p.x + 3, p.y + 4, p.radius, 0, Math.PI * 2); ctx.fill(); });
+        ctx.beginPath(); ctx.arc(ball.x + 2, ball.y + 3, BALL_RADIUS, 0, Math.PI * 2); ctx.fill();
+
+        players.forEach(p => {
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+            ctx.fillStyle = p.color; ctx.fill();
+            
+            let isLocal = false;
+            if (netRole === 'none' && p.id === 0) isLocal = true;
+            if (netRole === 'host' && p.id === 0) isLocal = true;
+            if (netRole === 'client' && p.id === 1) isLocal = true;
+
+            ctx.strokeStyle = isLocal ? '#ffdd44' : '#ffffff'; ctx.lineWidth = isLocal ? 4.5 : 3.5; ctx.stroke();
+
+            ctx.fillStyle = '#ffffff'; ctx.font = `bold ${p.radius * 0.85}px sans-serif`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(p.num, p.x, p.y + 1);
+
+            ctx.fillStyle = 'rgba(255,255,255,0.85)';
+            ctx.font = `bold ${Math.max(10, p.radius * 0.55)}px sans-serif`;
+            ctx.fillText(p.nick, p.x, p.y - p.radius - 8);
+        });
+
+        ctx.beginPath(); ctx.arc(ball.x, ball.y, BALL_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff'; ctx.fill();
+        ctx.strokeStyle = '#111111'; ctx.lineWidth = 2.5; ctx.stroke();
+
+        posts.forEach(post => {
+            ctx.beginPath(); ctx.arc(post.x, post.y, post.r, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff'; ctx.fill();
+            ctx.strokeStyle = '#333333'; ctx.lineWidth = 2; ctx.stroke();
+        });
+    }
+
+    function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
+
+    window.addEventListener('keydown', (e) => { 
+        keys[e.code] = true; 
+        if(e.code === 'Space') { e.preventDefault(); isHoldingKick = true; } 
+        if(e.code === 'KeyF') { e.preventDefault(); passTriggered = true; } 
+    });
+    window.addEventListener('keyup', (e) => { 
+        keys[e.code] = false; 
+        if(e.code === 'Space') { isHoldingKick = false; kickTriggered = true; } 
+    });
+    
+    window.addEventListener('mousedown', (e) => {
+        if(!menuScreen.classList.contains('hidden') || document.querySelector('.modal-overlay.active')) return;
+        if (e.target.id === 'gameCanvas' || e.target.id === 'gameScreen') {
+            if (e.button === 2) { e.preventDefault(); passTriggered = true; } 
+            else { isHoldingKick = true; powerDirection = 1; }
+        }
+    });
+    window.addEventListener('mouseup', () => { if (isHoldingKick) { isHoldingKick = false; kickTriggered = true; } });
+    window.addEventListener('contextmenu', e => e.preventDefault());
+
+    function setupJoystick() {
+        let active = false;
+        function handleMove(clientX, clientY) {
+            const rect = joystickZone.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+            let dx = clientX - cx, dy = clientY - cy;
+            const maxR = rect.width / 2 - 5; const dist = Math.hypot(dx, dy);
+            if (dist > maxR) { dx = dx / dist * maxR; dy = dy / dist * maxR; }
+            joyX = dx / maxR; joyY = dy / maxR;
+            joystickKnob.style.transform = `translate(${-50 + joyX * 45}%, ${-50 + joyY * 45}%)`;
+        }
+        joystickZone.addEventListener('touchstart', (e) => { active = true; handleMove(e.touches[0].clientX, e.touches[0].clientY); });
+        window.addEventListener('touchmove', (e) => { if (active) handleMove(e.touches[0].clientX, e.touches[0].clientY); });
+        window.addEventListener('touchend', () => { active = false; joyX = joyY = 0; joystickKnob.style.transform = 'translate(-50%, -50%)'; });
+    }
+
+    function setupKickAndPass() {
+        kickBtn.addEventListener('touchstart', (e) => { e.preventDefault(); isHoldingKick = true; currentPower = 10; powerDirection = 1; kickPowerLabel.textContent = '10%'; });
+        kickBtn.addEventListener('touchend', (e) => { e.preventDefault(); if (isHoldingKick) { isHoldingKick = false; kickTriggered = true; } });
+        passBtn.addEventListener('touchstart', (e) => { e.preventDefault(); passTriggered = true; });
+    }
+
+    function applyControlMode() {
+        if (controlMode === 'phone') { joystickZone.style.display = 'block'; phoneControlsContainer.style.display = 'flex'; pcPowerBarContainer.style.display = 'none'; } 
+        else { joystickZone.style.display = 'none'; phoneControlsContainer.style.display = 'none'; pcPowerBarContainer.style.display = 'block'; joyX = joyY = 0; }
+    }
+
+    // ===== НАСТРОЙКА ОФИЦИАЛЬНОГО СТАБИЛЬНОГО ПУЛА СЕТИ =====
+    function initPeer(callback) {
+        if (peer) { callback(); return; }
+        netStatusDisplay.style.display = 'block';
+        netStatusDisplay.textContent = "🔌 Подключение к сети...";
+        
+        // Переключаемся на официальное стабильное облако PeerJS Cloud
+        peer = new Peer({
+            key: 'peerjs',
+            host: '0.peerjs.com',
+            port: 443,
+            secure: true
+        });
+        
+        peer.on('open', (id) => {
+            netStatusDisplay.textContent = "🟢 Сеть готова";
+            callback();
+        });
+        
+        peer.on('error', (err) => {
+            alert("Ошибка сети PeerJS: " + err.type);
+            netStatusDisplay.textContent = "🔴 Ошибка сети";
+        });
+
+        peer.on('connection', (conn) => {
+            if (netRole !== 'host') { conn.close(); return; }
+            netConn = conn;
+            setupHostConnection();
+        });
+    }
+
+    function setupHostConnection() {
+        netStatusDisplay.textContent = "🎮 Игрок подключился!";
+        netConn.on('data', (data) => {
+            if (data.type === 'client_join_profile') {
+                if (players[1]) {
+                    players[1].nick = data.nick;
+                    players[1].num = data.num;
+                }
+                netConn.send({ type: 'init_game_settings', mode: gameMode, time: maxGameTime });
+                resetGame();
+            }
+            if (data.type === 'client_input') {
+                const p2 = players[1];
+                if (p2) {
+                    p2.vx = data.jx * PLAYER_SPEED;
+                    p2.vy = data.jy * PLAYER_SPEED;
+                    if (data.pass) executeSmartPass(1);
+                    if (data.kick) {
+                        const dx = ball.x - p2.x, dy = ball.y - p2.y; const dist = Math.hypot(dx, dy);
+                        if (dist < p2.radius + BALL_RADIUS + 32) {
+                            const angle = Math.atan2(dy, dx); const calculatedVel = 5 + (data.power / 100) * 15;
+                            ball.vx = Math.cos(angle) * calculatedVel; ball.vy = Math.sin(angle) * calculatedVel;
+                        }
+                    }
+                }
+            }
+        });
+        netConn.on('close', () => {
+            alert("Игрок отключился!");
+            gameActive = false;
+            menuScreen.classList.remove('hidden');
+        });
+    }
+
+    function setupClientConnection() {
+        netConn.on('open', () => {
+            netStatusDisplay.textContent = "📲 Подключено к серверу";
+            netConn.send({ type: 'client_join_profile', nick: playerNick, num: playerNum });
+        });
+
+        netConn.on('data', (data) => {
+            if (data.type === 'init_game_settings') {
+                gameMode = data.mode;
+                maxGameTime = data.time;
+                resetGame();
+                onlineLobbyModal.classList.remove('active');
+                menuScreen.classList.add('hidden');
+            }
+            if (data.type === 'sync') {
+                ball.x = data.ball.x; ball.y = data.ball.y;
+                scoreLeft = data.score.left; scoreRight = data.score.right;
+                updateScore();
+                
+                if (data.celebrating && !isCelebrating) {
+                    isCelebrating = true;
+                    goalOverlay.classList.add('active');
+                } else if (!data.celebrating && isCelebrating) {
+                    isCelebrating = false;
+                    goalOverlay.classList.remove('active');
+                }
+
+                data.players.forEach(srvP => {
+                    let localP = players.find(p => p.id === srvP.id);
+                    if (localP) {
+                        localP.x = srvP.x; localP.y = srvP.y;
+                        localP.nick = srvP.nick; localP.num = srvP.num;
+                    }
+                });
+            }
+            if (data.type === 'sync_time') {
+                gameTime = data.time;
+                updateTimerUI();
+                if (gameTime <= 0) endMatch();
+            }
+        });
+
+        netConn.on('close', () => {
+            alert("Сервер закрыт или разорвал соединение.");
+            gameActive = false;
+            menuScreen.classList.remove('hidden');
+        });
+    }
+
+    async function fetchActiveRooms() {
+        try {
+            let res = await fetch(ROOMS_API_URL);
+            if (res.status === 404) return [];
+            let text = await res.text();
+            return JSON.parse(text) || [];
+        } catch(e) { return []; }
+    }
+
+    async function pushRoomToGlobalList(roomObj) {
+        try {
+            let currentList = await fetchActiveRooms();
+            currentList = currentList.filter(r => r.id !== roomObj.id);
+            currentList.push(roomObj);
+            await fetch(ROOMS_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(currentList)
+            });
+        } catch(e) {}
+    }
+
+    async function removeRoomFromGlobalList(peerId) {
+        try {
+            let currentList = await fetchActiveRooms();
+            currentList = currentList.filter(r => r.id !== peerId);
+            await fetch(ROOMS_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(currentList)
+            });
+        } catch(e) {}
+    }
+
+    async function renderServerList() {
+        serverListContainer.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.5)">🔄 Обновление списка...</div>';
+        let rooms = await fetchActiveRooms();
+        let now = Date.now();
+        rooms = rooms.filter(r => (now - r.ts) < 300000);
+
+        if (rooms.length === 0) {
+            serverListContainer.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4)">Активных серверов нет. Будь первым!</div>';
+            return;
+        }
+
+        serverListContainer.innerHTML = '';
+        rooms.forEach(room => {
+            let item = document.createElement('div');
+            item.className = 'server-item';
+            let hasPassText = room.hasPass ? "🔒 С паролем" : "🔓 Открытый";
+            item.innerHTML = `
+                <div class="server-info">
+                    <span class="server-name">${room.name}</span>
+                    <span class="server-meta">${room.mode} | ${room.time / 60} мин. | ${hasPassText}</span>
+                </div>
+                <button class="server-join-btn" data-id="${room.id}" data-pass="${room.hasPass ? 1 : 0}">Войти</button>
+            `;
+            serverListContainer.appendChild(item);
+        });
+
+        document.querySelectorAll('.server-join-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                let srvId = btn.dataset.id;
+                let needPass = btn.dataset.pass === "1";
+                
+                let roomsLatest = await fetchActiveRooms();
+                let targetRoom = roomsLatest.find(r => r.id === srvId);
+                if (!targetRoom) { alert("Сервер больше не существует!"); renderServerList(); return; }
+
+                if (needPass) {
+                    let userPass = prompt("Введите пароль от сервера:");
+                    if (userPass !== targetRoom.pass) { alert("Неверный пароль!"); return; }
+                }
+
+                playerNick = nickInput.value.trim() || "Игрок 1";
+                playerNum = numInput.value.trim() || "10";
+
+                initPeer(() => {
+                    netRole = 'client';
+                    netConn = peer.connect(srvId);
+                    setupClientConnection();
+                });
+            });
+        });
+    }
+
+    function setupMenu() {
+        playBtn.addEventListener('click', () => { netRole = 'none'; modeModal.classList.add('active'); });
+        tgLinkBtn.addEventListener('click', () => window.open('https://t.me/HaxBallMobile', '_blank'));
+        
+        mode1v1Btn.addEventListener('click', () => { gameMode = '1v1'; maxGameTime = 120; modeModal.classList.remove('active'); menuScreen.classList.add('hidden'); resetGame(); });
+        mode3v3Btn.addEventListener('click', () => { gameMode = '3v3'; maxGameTime = 120; modeModal.classList.remove('active'); menuScreen.classList.add('hidden'); resetGame(); });
+        
+        modeClose.addEventListener('click', () => modeModal.classList.remove('active'));
+        matchEndClose.addEventListener('click', async () => { 
+            matchEndModal.classList.remove('active'); 
+            menuScreen.classList.remove('hidden'); 
+            if (netRole === 'host') {
+                await removeRoomFromGlobalList(peer.id);
+            }
+            netRole = 'none';
+            if (netConn) { netConn.close(); netConn = null; }
+        });
+
+        settingsBtn.addEventListener('click', () => settingsModal.classList.add('active'));
+        shopBtn.addEventListener('click', () => shopModal.classList.add('active'));
+        shopClose.addEventListener('click', () => shopModal.classList.remove('active'));
+        settingsClose.addEventListener('click', () => settingsModal.classList.remove('active'));
+        resetPosBtn.addEventListener('click', () => {
+            if (netRole !== 'client') resetBallPositions();
+        });
+
+        onlineMenuBtn.addEventListener('click', () => {
+            onlineLobbyModal.classList.add('active');
+            renderServerList();
+        });
+        onlineLobbyClose.addEventListener('click', () => onlineLobbyModal.classList.remove('active'));
+        refreshServersBtn.addEventListener('click', renderServerList);
+
+        openCreateModalBtn.addEventListener('click', () => {
+            createLocalServerModal.classList.add('active');
+        });
+        createLocalServerClose.addEventListener('click', () => createLocalServerModal.classList.remove('active'));
+
+        startHostingBtn.addEventListener('click', () => {
+            let srvNameText = document.getElementById('srvName').value.trim() || "Сервер";
+            let srvPassText = document.getElementById('srvPass').value.trim();
+            gameMode = document.getElementById('srvMode').value;
+            maxGameTime = parseInt(document.getElementById('srvTime').value);
+
+            playerNick = nickInput.value.trim() || "Хост";
+            playerNum = numInput.value.trim() || "10";
+
+            createLocalServerModal.classList.remove('active');
+            onlineLobbyModal.classList.remove('active');
+
+            initPeer(async () => {
+                netRole = 'host';
+                netStatusDisplay.textContent = "⏱ Ожидание игрока...";
+                menuScreen.classList.add('hidden');
+                
+                let roomObj = {
+                    id: peer.id,
+                    name: srvNameText,
+                    pass: srvPassText,
+                    hasPass: srvPassText.length > 0,
+                    mode: gameMode,
+                    time: maxGameTime,
+                    ts: Date.now()
+                };
+                await pushRoomToGlobalList(roomObj);
+                resetGame();
+                gameActive = false; 
+            });
+        });
+
+        skinGrid.addEventListener('click', (e) => {
+            const item = e.target.closest('.skin-item'); if (!item) return;
+            document.querySelectorAll('.skin-item').forEach(el => el.classList.remove('active'));
+            item.classList.add('active'); playerColor = item.dataset.color;
+            if (players.length) players[0].color = playerColor;
+        });
+
+        devicePhoneBtn.addEventListener('click', () => { controlMode = 'phone'; devicePhoneBtn.classList.add('active-mode'); devicePCBtn.classList.remove('active-mode'); applyControlMode(); });
+        devicePCBtn.addEventListener('click', () => { controlMode = 'pc'; devicePCBtn.classList.add('active-mode'); devicePhoneBtn.classList.remove('active-mode'); applyControlMode(); });
+
+        const difficulties = ['Лёгкая', 'Средняя', 'Сложная'];
+        let diffIndex = 1;
+        botDiffBtn.addEventListener('click', () => {
+            diffIndex = (diffIndex + 1) % 3; botDiffBtn.textContent = difficulties[diffIndex];
+            botSpeed = [0.45, 0.65, 0.85][diffIndex];
+        });
+    }
+
+    function handleResizeAndOrientation() {
+        setTimeout(() => { resizeCanvas(); if (players.length && netRole !== 'client') resetBallPositions(); }, 250);
+    }
+
+    window.addEventListener('resize', handleResizeAndOrientation);
+    window.addEventListener('orientationchange', handleResizeAndOrientation);
+    
+    function init() {
+        resizeCanvas(); setupJoystick(); setupKickAndPass(); setupMenu(); applyControlMode(); gameLoop();
+    }
+    init();
+})();
+</script>
+</body>
+              </html>
