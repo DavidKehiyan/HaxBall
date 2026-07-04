@@ -309,6 +309,7 @@
 <body>
 <div id="app">
 
+    <!-- ===== МЕНЮ ЭКРАН ===== -->
     <div id="menuScreen">
         <div class="menu-left">
             <div class="menu-profile-box">
@@ -334,6 +335,7 @@
         </div>
     </div>
 
+    <!-- ===== ИГРОВОЙ ЭКРАН ===== -->
     <div id="gameScreen">
         <div id="topOverlay">
             <div id="scoreDisplay">
@@ -354,6 +356,7 @@
 
         <canvas id="gameCanvas"></canvas>
 
+        <!-- Управление -->
         <div id="joystickZone"><div id="joystickKnob"></div></div>
         <div class="kick-container" id="phoneControlsContainer">
             <div class="btn-holder"><button id="passBtn">ПАС</button></div>
@@ -366,6 +369,9 @@
         <div id="pcPowerBarContainer"><div id="pcPowerBar"></div></div>
     </div>
 
+    <!-- ===== МОДАЛЬНЫЕ ОКНА ===== -->
+    
+    <!-- Модалка Онлайн Лобби -->
     <div class="modal-overlay" id="onlineLobbyModal">
         <div class="modal">
             <h2>🌐 ОНЛАЙН СЕРВЕРА</h2>
@@ -380,6 +386,7 @@
         </div>
     </div>
 
+    <!-- Модалка Создания Сервера -->
     <div class="modal-overlay" id="createLocalServerModal">
         <div class="modal">
             <h2>🛠️ ПАРАМЕТРЫ СЕРВЕРА</h2>
@@ -411,6 +418,7 @@
         </div>
     </div>
 
+    <!-- Однопользовательский выбор режима -->
     <div class="modal-overlay" id="modeModal">
         <div class="modal">
             <h2>🏆 ОДИНОЧНЫЙ РЕЖИМ</h2>
@@ -422,6 +430,7 @@
         </div>
     </div>
 
+    <!-- Окончание матча -->
     <div class="modal-overlay" id="matchEndModal">
         <div class="modal" style="text-align: center;">
             <h2 id="matchResultTitle">МАТЧ ЗАВЕРШЕН</h2>
@@ -430,6 +439,7 @@
         </div>
     </div>
 
+    <!-- Скины -->
     <div class="modal-overlay" id="shopModal">
         <div class="modal">
             <h2>🏪 ФОРМА ИГРОКА</h2>
@@ -443,6 +453,7 @@
         </div>
     </div>
 
+    <!-- Настройки -->
     <div class="modal-overlay" id="settingsModal">
         <div class="modal">
             <h2>⚙️ НАСТРОЙКИ</h2>
@@ -496,7 +507,7 @@
     let posts = [];
     let playerNick = "Игрок 1", playerNum = "10";
 
-    // ===== ПЕРЕМЕННЫЕ СЕТИ (PeerJS Cloud) =====
+    // ===== СЕТЬ И АЛЬТЕРНАТИВНЫЙ СЕРВЕР МЕТРО =====
     let peer = null;
     let netRole = 'none'; 
     let netConn = null;   
@@ -1014,18 +1025,18 @@
         else { joystickZone.style.display = 'none'; phoneControlsContainer.style.display = 'none'; pcPowerBarContainer.style.display = 'block'; joyX = joyY = 0; }
     }
 
-    // ===== НАСТРОЙКА ОФИЦИАЛЬНОГО СТАБИЛЬНОГО ПУЛА СЕТИ =====
+    // ===== НАСТРОЙКА УСТОЙЧИВОГО СОЕДИНЕНИЯ СЕТИ =====
     function initPeer(callback) {
         if (peer) { callback(); return; }
         netStatusDisplay.style.display = 'block';
         netStatusDisplay.textContent = "🔌 Подключение к сети...";
         
-        // Переключаемся на официальное стабильное облако PeerJS Cloud
-        peer = new Peer({
-            key: 'peerjs',
-            host: '0.peerjs.com',
+        // Подключаем абсолютно чистый открытый брокер-сервер без ограничений ключей
+        peer = new Peer(null, {
+            host: 'peerjs-server.herokuapp.com',
+            secure: true,
             port: 443,
-            secure: true
+            pingInterval: 5000
         });
         
         peer.on('open', (id) => {
@@ -1034,8 +1045,15 @@
         });
         
         peer.on('error', (err) => {
-            alert("Ошибка сети PeerJS: " + err.type);
-            netStatusDisplay.textContent = "🔴 Ошибка сети";
+            console.error(err);
+            // Фолбэк на резервный узел, если Хероку занят
+            if(err.type === 'server-error' || err.type === 'socket-error') {
+                 peer = new Peer(null, { host: '0.peerjs.com', port: 443, secure: true, key: 'peerjs' });
+                 peer.on('open', () => { netStatusDisplay.textContent = "🟢 Резерв сети"; callback(); });
+            } else {
+                 alert("Ошибка сети: " + err.type);
+                 netStatusDisplay.textContent = "🔴 Ошибка сети";
+            }
         });
 
         peer.on('connection', (conn) => {
@@ -1316,4 +1334,4 @@
 })();
 </script>
 </body>
-              </html>
+                                   </html>
