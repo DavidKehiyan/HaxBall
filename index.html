@@ -496,11 +496,10 @@
     let posts = [];
     let playerNick = "Игрок 1", playerNum = "10";
 
-    // ===== ПЕРЕМЕННЫЕ СЕТИ (PeerJS) =====
+    // ===== ПЕРЕМЕННЫЕ СЕТИ (PeerJS Cloud) =====
     let peer = null;
-    let netRole = 'none'; // 'none', 'host', 'client'
-    let netConn = null;   // Объект соединения
-    // Бесплатная имитация мастер-сервера через публичный JSON-склад
+    let netRole = 'none'; 
+    let netConn = null;   
     const ROOMS_API_URL = "https://keyvalue.xyz/v1/key/haxballmobile_rooms_2026"; 
 
     function updatePhysicsConstants() {
@@ -553,7 +552,6 @@
     
     let currentPower = 10, isHoldingKick = false, powerDirection = 1, kickTriggered = false, passTriggered = false;
 
-    // Ссылки на модалки
     const shopModal = document.getElementById('shopModal');
     const settingsModal = document.getElementById('settingsModal');
     const modeModal = document.getElementById('modeModal');
@@ -586,11 +584,9 @@
         gameTime = maxGameTime; updateTimerUI();
         timerInterval = setInterval(() => {
             if (gameActive && !isCelebrating) {
-                // Только хост или одиночка убавляет таймер
                 if (netRole !== 'client') {
                     gameTime--; updateTimerUI();
                     if (gameTime <= 0) endMatch();
-                    // Хост шлет синхронизацию времени клиенту
                     if (netRole === 'host' && netConn) {
                         netConn.send({ type: 'sync_time', time: gameTime });
                     }
@@ -808,9 +804,7 @@
     function update() {
         if (!gameActive) return;
 
-        // Если мы КЛИЕНТ, мы просто ждем пакеты от хоста и ничего сами не вычисляем
         if (netRole === 'client') {
-            // Отправляем свои инпуты хосту на каждом кадре
             let currentInpX = 0, currentInpY = 0;
             if (controlMode === 'phone') { currentInpX = joyX; currentInpY = joyY; } 
             else {
@@ -826,7 +820,6 @@
             }
             kickTriggered = false; passTriggered = false;
             
-            // Шкала силы для визуализации на ПК
             if (isHoldingKick) {
                 currentPower += 2.5 * powerDirection;
                 if (currentPower >= 100) { currentPower = 100; powerDirection = -1; }
@@ -836,8 +829,6 @@
             }
             return; 
         }
-
-        // --- ЛОГИКА ДЛЯ ОДИНОЧКИ И ХОСТА ---
 
         if (isCelebrating) {
             celebrationTimer--;
@@ -862,7 +853,6 @@
             return;
         }
 
-        // Движение локального игрока (Красный #0)
         const p1 = players[0];
         if (controlMode === 'phone') { p1.vx = joyX * PLAYER_SPEED; p1.vy = joyY * PLAYER_SPEED; } 
         else {
@@ -877,7 +867,6 @@
 
         players.forEach(p => { p.x += p.vx; p.y += p.vy; handlePlayerConstraints(p); });
 
-        // Коллизии
         for (let i = 0; i < players.length; i++) {
             for (let j = i + 1; j < players.length; j++) { checkCircleCollision(players[i], players[j], true); }
         }
@@ -885,7 +874,6 @@
         handleBallPhysics();
         players.forEach(p => checkCircleCollision(p, ball, true));
 
-        // Сила удара хоста/одиночки
         if (isHoldingKick) {
             currentPower += 2.5 * powerDirection;
             if (currentPower >= 100) { currentPower = 100; powerDirection = -1; }
@@ -907,7 +895,6 @@
         if (passTriggered) { executeSmartPass(0); passTriggered = false; }
         ball.vx *= BALL_FRICTION; ball.vy *= BALL_FRICTION;
 
-        // Если мы хост — отправляем синхронизацию клиенту
         if (netRole === 'host' && netConn) {
             sendHostSync();
         }
@@ -924,7 +911,6 @@
         });
     }
 
-    // ===== ОТРИСОВКА =====
     function draw() {
         ctx.clearRect(0, 0, W, H);
         ctx.fillStyle = '#529c2b'; ctx.fillRect(0, 0, W, H);
@@ -948,12 +934,10 @@
         players.forEach(p => { ctx.beginPath(); ctx.arc(p.x + 3, p.y + 4, p.radius, 0, Math.PI * 2); ctx.fill(); });
         ctx.beginPath(); ctx.arc(ball.x + 2, ball.y + 3, BALL_RADIUS, 0, Math.PI * 2); ctx.fill();
 
-        // Отрисовка участников
         players.forEach(p => {
             ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
             ctx.fillStyle = p.color; ctx.fill();
             
-            // Подсветка локального игрока (в зависимости от роли)
             let isLocal = false;
             if (netRole === 'none' && p.id === 0) isLocal = true;
             if (netRole === 'host' && p.id === 0) isLocal = true;
@@ -961,18 +945,15 @@
 
             ctx.strokeStyle = isLocal ? '#ffdd44' : '#ffffff'; ctx.lineWidth = isLocal ? 4.5 : 3.5; ctx.stroke();
 
-            // Номер на футболке
             ctx.fillStyle = '#ffffff'; ctx.font = `bold ${p.radius * 0.85}px sans-serif`;
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillText(p.num, p.x, p.y + 1);
 
-            // Текст Ника над игроком
             ctx.fillStyle = 'rgba(255,255,255,0.85)';
             ctx.font = `bold ${Math.max(10, p.radius * 0.55)}px sans-serif`;
             ctx.fillText(p.nick, p.x, p.y - p.radius - 8);
         });
 
-        // Мяч
         ctx.beginPath(); ctx.arc(ball.x, ball.y, BALL_RADIUS, 0, Math.PI * 2);
         ctx.fillStyle = '#ffffff'; ctx.fill();
         ctx.strokeStyle = '#111111'; ctx.lineWidth = 2.5; ctx.stroke();
@@ -986,7 +967,6 @@
 
     function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
 
-    // ===== СЛУШАТЕЛИ ВВОДА И КНОПОК =====
     window.addEventListener('keydown', (e) => { 
         keys[e.code] = true; 
         if(e.code === 'Space') { e.preventDefault(); isHoldingKick = true; } 
@@ -1007,7 +987,6 @@
     window.addEventListener('mouseup', () => { if (isHoldingKick) { isHoldingKick = false; kickTriggered = true; } });
     window.addEventListener('contextmenu', e => e.preventDefault());
 
-    // Джойстик на мобилках
     function setupJoystick() {
         let active = false;
         function handleMove(clientX, clientY) {
@@ -1035,15 +1014,19 @@
         else { joystickZone.style.display = 'none'; phoneControlsContainer.style.display = 'none'; pcPowerBarContainer.style.display = 'block'; joyX = joyY = 0; }
     }
 
-    // ===== РЕАЛИЗАЦИЯ СЕТЕВЫХ ФУНКЦИЙ (ONLINE) =====
-
+    // ===== НАСТРОЙКА ОФИЦИАЛЬНОГО СТАБИЛЬНОГО ПУЛА СЕТИ =====
     function initPeer(callback) {
         if (peer) { callback(); return; }
         netStatusDisplay.style.display = 'block';
         netStatusDisplay.textContent = "🔌 Подключение к сети...";
         
-        // Создаем подключение к бесплатному публичному серверу PeerJS
-        peer = new Peer();
+        // Переключаемся на официальное стабильное облако PeerJS Cloud
+        peer = new Peer({
+            key: 'peerjs',
+            host: '0.peerjs.com',
+            port: 443,
+            secure: true
+        });
         
         peer.on('open', (id) => {
             netStatusDisplay.textContent = "🟢 Сеть готова";
@@ -1055,7 +1038,6 @@
             netStatusDisplay.textContent = "🔴 Ошибка сети";
         });
 
-        // Слушаем входящие соединения (если мы хост)
         peer.on('connection', (conn) => {
             if (netRole !== 'host') { conn.close(); return; }
             netConn = conn;
@@ -1063,22 +1045,18 @@
         });
     }
 
-    // Логика Хоста
     function setupHostConnection() {
         netStatusDisplay.textContent = "🎮 Игрок подключился!";
         netConn.on('data', (data) => {
             if (data.type === 'client_join_profile') {
-                // Получаем ник и номер зашедшего игрока
                 if (players[1]) {
                     players[1].nick = data.nick;
                     players[1].num = data.num;
                 }
-                // Отправляем ответные настройки матча клиенту
                 netConn.send({ type: 'init_game_settings', mode: gameMode, time: maxGameTime });
                 resetGame();
             }
             if (data.type === 'client_input') {
-                // Применяем инпуты клиента к синему игроку (#1)
                 const p2 = players[1];
                 if (p2) {
                     p2.vx = data.jx * PLAYER_SPEED;
@@ -1101,11 +1079,9 @@
         });
     }
 
-    // Логика Клиента
     function setupClientConnection() {
         netConn.on('open', () => {
             netStatusDisplay.textContent = "📲 Подключено к серверу";
-            // Отправляем свои профильные данные
             netConn.send({ type: 'client_join_profile', nick: playerNick, num: playerNum });
         });
 
@@ -1118,7 +1094,6 @@
                 menuScreen.classList.add('hidden');
             }
             if (data.type === 'sync') {
-                // Жестко перезаписываем координаты от хоста
                 ball.x = data.ball.x; ball.y = data.ball.y;
                 scoreLeft = data.score.left; scoreRight = data.score.right;
                 updateScore();
@@ -1153,7 +1128,6 @@
         });
     }
 
-    // Работа со списком комнат (Мастер-сервер)
     async function fetchActiveRooms() {
         try {
             let res = await fetch(ROOMS_API_URL);
@@ -1166,7 +1140,6 @@
     async function pushRoomToGlobalList(roomObj) {
         try {
             let currentList = await fetchActiveRooms();
-            // Очищаем старые комнаты этого же пира, чтобы не дублировать
             currentList = currentList.filter(r => r.id !== roomObj.id);
             currentList.push(roomObj);
             await fetch(ROOMS_API_URL, {
@@ -1192,8 +1165,6 @@
     async function renderServerList() {
         serverListContainer.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.5)">🔄 Обновление списка...</div>';
         let rooms = await fetchActiveRooms();
-        
-        // Фильтруем старые записи (старше 5 минут для надежности)
         let now = Date.now();
         rooms = rooms.filter(r => (now - r.ts) < 300000);
 
@@ -1217,7 +1188,6 @@
             serverListContainer.appendChild(item);
         });
 
-        // Слушатель захода на сервер
         document.querySelectorAll('.server-join-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
                 let srvId = btn.dataset.id;
@@ -1232,7 +1202,6 @@
                     if (userPass !== targetRoom.pass) { alert("Неверный пароль!"); return; }
                 }
 
-                // Локально сохраняем профиль
                 playerNick = nickInput.value.trim() || "Игрок 1";
                 playerNum = numInput.value.trim() || "10";
 
@@ -1245,7 +1214,6 @@
         });
     }
 
-    // ===== НАСТРОЙКА КНОПОК И ОКЕН =====
     function setupMenu() {
         playBtn.addEventListener('click', () => { netRole = 'none'; modeModal.classList.add('active'); });
         tgLinkBtn.addEventListener('click', () => window.open('https://t.me/HaxBallMobile', '_blank'));
@@ -1272,7 +1240,6 @@
             if (netRole !== 'client') resetBallPositions();
         });
 
-        // Открытие онлайн лобби
         onlineMenuBtn.addEventListener('click', () => {
             onlineLobbyModal.classList.add('active');
             renderServerList();
@@ -1280,13 +1247,11 @@
         onlineLobbyClose.addEventListener('click', () => onlineLobbyModal.classList.remove('active'));
         refreshServersBtn.addEventListener('click', renderServerList);
 
-        // Открытие параметров создания сервера
         openCreateModalBtn.addEventListener('click', () => {
             createLocalServerModal.classList.add('active');
         });
         createLocalServerClose.addEventListener('click', () => createLocalServerModal.classList.remove('active'));
 
-        // Кнопка окончательного запуска сервера
         startHostingBtn.addEventListener('click', () => {
             let srvNameText = document.getElementById('srvName').value.trim() || "Сервер";
             let srvPassText = document.getElementById('srvPass').value.trim();
@@ -1304,7 +1269,6 @@
                 netStatusDisplay.textContent = "⏱ Ожидание игрока...";
                 menuScreen.classList.add('hidden');
                 
-                // Публикуем комнату на глобальный бесплатный список
                 let roomObj = {
                     id: peer.id,
                     name: srvNameText,
@@ -1316,7 +1280,7 @@
                 };
                 await pushRoomToGlobalList(roomObj);
                 resetGame();
-                gameActive = false; // Ждем пока зайдет клиент
+                gameActive = false; 
             });
         });
 
@@ -1352,4 +1316,4 @@
 })();
 </script>
 </body>
-          </html>
+    </html>
